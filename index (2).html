@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moonlight Ninja V2</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background: #0a0a1a; 
+            overflow: hidden; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        #game-container { 
+            position: relative; 
+            width: 1024px; 
+            height: 768px;
+            background: linear-gradient(to bottom, #0a0a2a 0%, #1a1a3a 50%, #0a0a2a 100%);
+            overflow: hidden;
+        }
+        #game-canvas { 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            background: transparent;
+        }
+        #ui-layer { 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            pointer-events: none;
+        }
+        #main-menu, #pause-menu, #game-over, #level-complete { 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(0, 0, 0, 0.85); 
+            display: none; 
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        #main-menu.active, #pause-menu.active, #game-over.active, #level-complete.active { 
+            display: flex; 
+        }
+        .menu-title { 
+            font-size: 48px; 
+            color: #ffd700; 
+            margin-bottom: 40px; 
+            text-shadow: 0 0 20px #ffd700, 0 0 40px #ff69b4; 
+            font-weight: bold;
+        }
+        .menu-button { 
+            font-size: 24px; 
+            color: #fff; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none; 
+            padding: 15px 40px; 
+            margin: 10px; 
+            cursor: pointer; 
+            border-radius: 5px; 
+            transition: all 0.3s ease; 
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .menu-button:hover { 
+            transform: scale(1.05); 
+            box-shadow: 0 0 30px rgba(102, 126, 234, 0.7);
+        }
+        .hud { 
+            position: absolute; 
+            top: 20px; 
+            left: 20px; 
+            right: 20px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            pointer-events: none;
+        }
+        .health-bar { 
+            width: 200px; 
+            height: 30px; 
+            background: #333; 
+            border: 2px solid #ffd700; 
+            border-radius: 15px; 
+            overflow: hidden;
+        }
+        .health-fill { 
+            height: 100%; 
+            background: linear-gradient(to right, #ff4757, #ff6b6b);
+            transition: width 0.3s ease;
+        }
+        .score-display { 
+            font-size: 24px; 
+            color: #ffd700; 
+            text-shadow: 0 0 10px #ffd700;
+        }
+        .coin-counter { 
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+            font-size: 20px; 
+            color: #fff;
+        }
+        .pause-button { 
+            position: absolute; 
+            top: 20px; 
+            right: 20px; 
+            font-size: 24px; 
+            color: #ffd700; 
+            background: rgba(0, 0, 0, 0.5); 
+            border: none; 
+            padding: 10px 20px; 
+            cursor: pointer; 
+            border-radius: 5px; 
+            z-index: 100;
+        }
+        .pause-button:hover { 
+            background: rgba(0, 0, 0, 0.8);
+        }
+        .checkpoint-notification { 
+            position: absolute; 
+            top: 100px; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            font-size: 28px; 
+            color: #00ff88; 
+            text-shadow: 0 0 20px #00ff88; 
+            opacity: 0; 
+            transition: opacity 0.5s ease;
+        }
+        .checkpoint-notification.active { 
+            opacity: 1; 
+        }
+        #loading { 
+            position: absolute; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            font-size: 24px; 
+            color: #ffd700;
+        }
+        #controls-menu {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            color: #fff;
+            padding: 40px;
+            box-sizing: border-box;
+        }
+        #controls-menu.active {
+            display: flex;
+        }
+        .controls-title {
+            font-size: 36px;
+            color: #ffd700;
+            margin-bottom: 30px;
+            text-shadow: 0 0 20px #ffd700;
+        }
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            max-width: 600px;
+        }
+        .control-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            font-size: 18px;
+        }
+        .control-item span:first-child {
+            color: #ffd700;
+            font-weight: bold;
+        }
+        .back-button {
+            margin-top: 40px;
+            font-size: 20px;
+            color: #ffd700;
+            background: rgba(255, 215, 0, 0.2);
+            border: 2px solid #ffd700;
+            padding: 12px 30px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+        .back-button:hover {
+            background: rgba(255, 215, 0, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas" width="1024" height="768"></canvas>
+        <div id="ui-layer">
+            <button class="pause-button" id="pause-btn">PAUSE (Esc)</button>
+            <div class="hud">
+                <div class="health-container">
+                    <div class="health-bar">
+                        <div class="health-fill" id="health-fill"></div>
+                    </div>
+                </div>
+                <div class="score-display" id="score-display">Score: 0</div>
+                <div class="coin-counter" id="coin-counter">
+                    <span>Coins: </span>
+                    <span id="coin-count">0</span>
+                    <span>/</span>
+                    <span id="total-coins">0</span>
+                </div>
+            </div>
+            <div class="checkpoint-notification" id="checkpoint-notification">CHECKPOINT REACHED!</div>
+        </div>
+        <div id="loading">Loading...</div>
+        
+        <div id="main-menu" class="active">
+            <div class="menu-title">MOONLIGHT NINJA V2</div>
+            <button class="menu-button" id="start-btn">START GAME</button>
+            <button class="menu-button" id="controls-btn">CONTROLS</button>
+        </div>
+        
+        <div id="controls-menu">
+            <div class="controls-title">CONTROLS</div>
+            <div class="controls-grid">
+                <div class="control-item"><span>Move Left:</span><span>A / Left Arrow</span></div>
+                <div class="control-item"><span>Move Right:</span><span>D / Right Arrow</span></div>
+                <div class="control-item"><span>Jump:</span><span>W / Up / Space</span></div>
+                <div class="control-item"><span>Pause:</span><span>Esc</span></div>
+                <div class="control-item"><span>Attack:</span><span>J / K</span></div>
+                <div class="control-item"><span>Restart:</span><span>R</span></div>
+            </div>
+            <button class="back-button" id="back-btn">BACK</button>
+        </div>
+        
+        <div id="pause-menu">
+            <div class="menu-title">PAUSED</div>
+            <button class="menu-button" id="resume-btn">RESUME</button>
+            <button class="menu-button" id="restart-btn">RESTART</button>
+            <button class="menu-button" id="quit-btn">QUIT TO MENU</button>
+        </div>
+        
+        <div id="game-over">
+            <div class="menu-title">GAME OVER</div>
+            <button class="menu-button" id="retry-btn">TRY AGAIN</button>
+            <button class="menu-button" id="menu-btn">MAIN MENU</button>
+        </div>
+        
+        <div id="level-complete">
+            <div class="menu-title">LEVEL COMPLETE!</div>
+            <div class="menu-title" id="final-score">Score: 0</div>
+            <button class="menu-button" id="next-level-btn">NEXT LEVEL</button>
+            <button class="menu-button" id="menu-btn2">MAIN MENU</button>
+        </div>
+    </div>
+    
+    <img id="sprite-sheet" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABogAAAOtCAYAAACyhucJAABcZmNhQlgAAFxmanVtYgAAAB5qdW1kYzJwYQARABCAAACqADibcQNjMnBhAAAAXEBqdW1iAAAAR2p1bWRjMm1hABEAEIAAAKoAOJtxA3VybjpjMnBhOjczM2M0MzgwLWRmMWYtNGM5Zi1hY2ZiLTVkNGRkNThjZGY4NAAAAAx8anVtYgAAAClqdW1kYzJhcwARABCAAACqADibcQNjMnBhLmFzc2VydGlvbnMAAAAJ0Wp1bWIAAAA7anVtZEDLDDK7ikidpwsq1vR/Q2kTYzJwYS5pY29uAAAAABhjMnNoxQ2rbqPimKZNWJ6ou6rLDQAAABdiZmRiAGltYWdlL3N2Zyt4bWwAAAAJd2JpZGI8c3ZnIHdpZHRoPSIxNjcyIiBoZWlnaHQ9Ijk0MCIgdmlld0JveD0iMCAwIDE2NzIgOTQxIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cGF0aCBkPSJNMTAyNCA3MjBIMjUyLjQgTDMxMi40IDc0NkgxMDI0IFoiIGZpbGw9IiNmZjQ3NTEiLz4KPHA+YXRoIGQ9Ik0xMjgwIDc0Nkg0NDBNNjQwIDc0NkgxMjgwIFoiIGZpbGw9IiNmZjQ3NTEiLz4KPHA+YXRoIGQ9Ik0xNzYwIDc0NkgxOTIwIFoiIGZpbGw9IiNmZjQ3NTEiLz4KPHA+YXRoIGQ9Ik0yMDQwIDc0NkgxNjgwIFoiIGZpbGw9IiNmZjQ3NTEiLz4KPHA+YXRoIGQ9Ik0yMzIwIDc0NkgxNDQwIFoiIGZpbGw9IiNmZjQ3NTEiLz4KPHA+YXRoIGQ9Ik0yNjAwIDc0NkgxMjAwIFoiIGZpbGw9IiNmZjQ3NTEiLz4KPHA+YXRoIGQ9Ik0yODgwIDc0Nkg5NjBIMjQ0MCBNNzAwIDc0NkgxODYwIFoiIGZpbGw9IiNmZjQ3NTEiLz4KPC9zdmc+" style="display:none;">
+</body>
+
+</html>
